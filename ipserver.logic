@@ -1,0 +1,515 @@
+#!/bin/bash
+
+#      +---------------+
+#  +---| IPSERVER v3.0 |-------------+
+#  |   +---------------+             |
+#  |                                 |
+#  | CRIADO EM: 05/07/2017           |
+#  | REVISADO EM: 14/09/2017         |
+#  | POR: Sanderval Maia dos Santos  |
+#  | E-MAIL: sander@logicmind.com.br |
+#  |                                 |
+#  | Powered by LogicMInd            |
+#  | www.logicmind.com.br            |
+#  +---------------------------------+
+
+#      +------+
+#  +---| INFO |---------------------------------------------------------------+
+#  |   +------+                                                               |
+#  |                                                                          |
+#  | INFOS:                                                                   |
+#  | ------                                                                   |
+#  |                                                                          |
+#  | Sistema de monitoramento ativo, enviando informacoes e realizando        |
+#  | comandos de acordo com as necessidades, de forma automatica.             |
+#  |                                                                          |
+#  | PARA DEBUG DO BASH, USAR O PARAMETRO DEFAULT "-x"                        |
+#  +--------------------------------------------------------------------------+
+
+
+
+################################################################################
+### VARIAVEIS DE ACESSO (AJUSTAR COMO NECESSARIO) ##############################
+################################################################################
+server_login=`hostname`;
+server_password='ENTRE COM A SENHA';
+################################################################################
+
+
+
+################################################################################
+### INICIO DO CONTROLE DO DAEMOM ###############################################
+################################################################################
+
+#           +----------+--------+
+# ----------| IPSERVER | DAEMON |-----------------------------------------------
+#           +----------+--------+
+
+    # PRIMEIRAS INFORMACOES PARA CONTROLE DO DAEMON IPSERVER
+    MYPID=$$;
+    MYNAME=$(echo $0 | rev | cut -d "/" -f 1 | rev | cut -d "." -f 1);
+
+    # DEFININDO VARIAVEIS DO DAEMON IPSERVER
+    LOCK=/tmp/ipserver_daemon.lock;
+    # TROCAR PELO SYSLOG (SALVAR INFORMACOES PERSONALIZADAS)
+    LOG=/tmp/ipserver_daemon.log;
+
+    # PADRAO PARA MASK
+    umask 022;
+
+    # EXECUTA CONTROLE DO TAMANHO DO ARQUIVO DE LOG
+    LINE=$(wc $LOG 2> /dev/null | awk {'print $1'});
+    if [ "$LINE" != "" ]; then
+    {
+        if [ $LINE -gt 90 ]; then
+        {
+
+	        tail -n 60 $LOG > $LOG.tmp;
+	        mv $LOG.tmp $LOG;
+
+        }
+        fi
+    }
+    fi;
+
+    # FUNCAO PARA CONTROLE DO SINAL DE FINALIZACAO (KILL, CTRL + C)
+    function control_c ()
+    {
+
+# DEBUG INTERNO
+#echo -e "SINAL DE FINALIZACAO!";
+
+	    # REMOVE ARQUIVOS DE CONTROLE (DEIXA LOG)
+	    rm $LOCK 2>/dev/null;
+
+	    # FINALIZA O DAEMON IPSERVER
+	    exit 0;
+
+    }
+
+    # INICIALIZA O DAEMON
+    function inicia_daemon_ipserver ()
+    {
+
+	    # SALVA INFORMACOES DO DAEMON IPSERVER EM LOCK
+	    echo $MYPID > $LOCK;
+
+	    # GRAVA MENSAGEM DE EXECUCAO DO DAEMON IPSERVER
+    	echo "---" >> $LOG;
+    	echo "DAEMON IPSERVER INICIADO EM: `date`" >> $LOG;
+
+################################################################################
+### INICIO DO CODIGO DA APLICACAO ##############################################
+################################################################################
+
+# ATIVA DAEMON, E CONTROLE INTERNO DE TEMPO;
+# SERA INICIALIZADO UMA UNICA VEZ "ipserver.logic &", MANUALMENTE, NA CRON OU
+# RC.LOCAL, DEPOIS DISSO ENTRA EM EXECUCAO O DAEMON, FAZENDO SEU PROPRIO
+# CONTROLE EVITANDO RODAR EM DUPLICIDADE, E COM ISSO POSSIVEIS TRAVAMENTOS
+# A APLICACAO COM SISTEMA DE VERIFICACAO DE CONEXAO DE INTERNET E SERVIDOR DE
+# BASE DE DADOS, COM ISSO EVITANTO PROBLEMAS DE CONSUMO DE RECURSOS DO SERVIDOR
+# COM LOGS DO DAEMOM E APLICACAO, SEPARADOS PARA MELHOR ANALISE
+
+##############################
+#                            #
+# INICIO DO CONTROLE INTERNO #
+#                            #
+##############################
+
+while [ 1 ]
+do
+
+################################################################################
+
+#           +------------------------------------------------+
+# ----------| DEFINICAO DE VARIAVEIS E ADICAO DE BIBLIOTECAS |------------------
+#           +------------------------------------------------+
+
+# DEBUG INTERNO
+#echo "INICIO";
+
+        # TESTA CONEXAO COM A INTERNET E SERVIDOR DA LOGICMIND (IPSERVER), DEFINE VARIAVEL DE ACESSO AO SERVIDOR
+        server_log_err_connect="ipserver_err_connect.log";
+        server_commands="SEM ACESSO AO SERVIDOR [PING]";
+        server_port="no";
+
+        # FAZ TESTE DE PING
+        if [ `ping -c 3 ipserver1.logicmind.com.br > /dev/null 2> /dev/null && echo ok;` ]; then
+        {
+
+# DEBUG INTERNO
+#echo "TESTE PING";
+
+            # GRAVA SERVIDOR DE ACESSO INTERNET1
+            # SERVIDOR PRINCIPAL
+            server_commands="ipserver1.logicmind.com.br";
+
+# DEBUG INTERNO
+#echo "Ok server: "$server_commands;
+
+        }
+        # FAZ TESTE DE PING
+        elif [ `ping -c 3 ipserver2.logicmind.com.br > /dev/null 2> /dev/null && echo ok;` ]; then
+        {
+
+# DEBUG INTERNO
+#echo "TESTE PING";
+
+            # GRAVA SERVIDOR DE ACESSO INTERNET2
+            # SERVIDOR SECUNDARIO
+            server_commands="ipserver2.logicmind.com.br";
+
+# DEBUG INTERNO
+#echo "Ok server: "$server_commands;
+
+        }
+        # FAZ TESTE DE PING  > /dev/null 2> /dev/null
+        elif [ `ping -c 3 ipserver3.logicmind.com.br > /dev/null 2> /dev/null && echo ok;` ]; then
+        {
+
+# DEBUG INTERNO
+#echo "TESTE PING";
+
+            # GRAVA SERVIDOR DE ACESSO INTERNET3
+            # SERVIDOR INTRANET
+            server_commands="ipserver3.logicmind.com.br";
+
+# DEBUG INTERNO
+#echo "Ok server: "$server_commands;
+
+        }
+        fi;
+
+        # VERIFICA PORTA DE CONEXAO BANCO DE DADOS
+        if [ "$server_commands" != "SEM ACESSO AO SERVIDOR [PING]" ]; then
+        {
+
+# DEBUG INTERNO
+#echo "TESTE PORT";
+
+            # REALIZA TESTE DE PORTAS
+            if [ `nmap --open -q -p 3306,5006,6006 -PN $server_commands 2> /dev/null | grep -i open > /dev/null 2> /dev/null && echo ok` ]; then
+            {
+
+                # ACESSO A PORTA DE CONEXAO COM A BASE DE DADOS, OK
+                # DEFINE PORTA DE ACESSO
+                server_port=`nmap --open -q -p 3306,5006,6006 -PN $server_commands | grep -i open | head -n 1 | tail -n 1 | cut -d "/" -f 1`;
+
+# DEBUG INTERNO
+#echo "Ok port: "$server_port;
+
+            }
+            else
+            {
+
+                # SE PORTA ATIVA, DEFINE VARIAVEL DE ACESSO AO SERVIDOR
+                server_commands="SEM ACESSO A BASE DE DADOS [PORTA]";
+
+            }
+            fi;
+
+        }
+        fi;
+
+        # INICIA SISTEMA APOS VALIDACAO DO ACESSO A INTERNET E A BASE, SENAO GRAVA LOG INTERNO DE ERRO
+        if [ "$server_commands" != "SEM ACESSO A INTERNET" ] && [ "$server_commands" != "SEM ACESSO A BASE DE DADOS" ] && [ "$server_port" != "no" ]; then
+        {
+
+            # SEQUENCIA NA DEFINICAO DAS DEMAIS VARIAVEIS DE SISTEMA;
+            server_db="ipserver";
+            server_php="ipserver.php";
+            server_log="ipserver.log";
+            server_log_val="ipserver_val.log";
+            server_log_err="ipserver_err.log";
+
+# DEBUG INTERNO
+#echo $server_login"-"$server_password"-"$server_commands"-"$server_port;
+
+#
+# ---------variaveis iniciais---------------------------------------------------
+#
+
+
+#           +---------------------------------+
+# ----------| BUSCA DOS COMANDOS E INSTRUCOES |---------------------------------
+#           +---------------------------------+
+
+            # VAI PARA O TEMP PARA INICIAR AS BUSCAS
+            cd /tmp;
+
+            # ACESSO AO SISTEMA WEB E BAIXA DOS COMANDOS
+            wget -q --post-data 'LOGIN='$server_login'&PASSWORD='$server_password'&OK=OK' $server_commands:6080/ipserver/$server_php;
+
+            # LEITURA DO ARQUIVO GERADO E FILTRO PARA LOCALIZAR SOMENTE OS COMANDOS VALIDOS
+            commands=`cat $server_php | grep ";" | grep "%" | dos2unix | sed -e 's/<br \/>/;/g' | grep -v "^#" | sed '/^$/d' | tr -s ';' ';' | sed -e 's/;/ ; echo "----";/g'`;
+
+# DEBUG INTERNO
+#echo "COMANDOS: "$commands;
+
+#
+# ---------busca dos comandos e instrucoes--------------------------------------
+#
+
+            # REMOVE ARQUIVO GERADO
+            rm $server_php*;
+
+            # VALIDA COMANDOS, RECEBIDOS SE LOGIN LIBERADO, ENTAO REALIZA PROCEDIMENTOS
+            if [ "$commands" != "" ]; then
+            {
+
+#           +------------------------------------+
+# ----------| EXECUCAO DOS COMANDOS E INSTRUCOES |------------------------------
+#           +------------------------------------+
+
+                # ZERA E INICIA ARQUIVO DE LOG DE EROOS
+                > /tmp/$server_log_err;
+                date > /tmp/$server_log_err;
+
+                # EXECUTA OS COMANDOS SALVA EM LOG LOCAL
+                echo $commands | bash > /tmp/$server_log 2>> /tmp/$server_log_err;
+
+# SANDER REMOVER DEPOIS | VALIDAR XARGS, SALVAR LOG DE COMANDOS PARA VALIDACAO;
+
+#
+# ---------execucao dos comandos e instrucoes-----------------------------------
+#
+
+#           +---------------------------------------------------------+
+# ----------| FILTRA E ENVIA AS INFORMACOES DE SAIDA AO MONITORAMENTO |---------
+#           +---------------------------------------------------------+
+
+                # REALIZA FILTRO PARA IDENTIFICAR SAIDAS
+                search_start="1";
+                for search in `cat /tmp/$server_log | nl -ba | grep "\-\-\-\-" | tr -d " " | tr -s "\t" " " | cut -d " " -f 1`
+                do
+
+                    # FAZ CONTROLE E BUSCA POR LINNHA
+                    search_stop=$(($search - $search_start));
+                    search_result=`tail -n +$search_start /tmp/$server_log | head -n $search_stop | tee /tmp/$server_log_val`;
+
+                    # FILTRA PELO TIPO DE CAMPO OU VALOR
+                    if [ "`echo $search_result | grep "\%\%\%\%"`" != "" ]; then
+                    {
+
+                        # FILTRA E GRAVA CAMPO
+                        search_result_check=`echo $search_result | cut -d "%" -f 5`;
+
+# DEBUG INTERNO
+#echo "--------------------------------------------------------------------------------";
+
+                    }
+                    elif [ "`echo $search_result | grep "\%+\%\%"`" != "" ]; then
+                    {
+
+                        # CAPTURA DADOS DE ACESSO A BASE DE DADOS, PARA GRAVACAO
+                        search_result_login=`echo $search_result  | cut -d "%" -f 4`;
+                        search_result_password=`echo $search_result  | cut -d "%" -f 5`;
+                        search_result_table=`echo $search_result  | cut -d "%" -f 6`;
+                        # VARIAVEL PARA OS COMANDOS SQL
+                        query_sql="mysql -B -L -N -q -D $server_db -u $search_result_login -p$search_result_password -h $server_commands -P $server_port -e ";
+                        # INSERE LOGIN NA BASE E CAPTURA ID DA LINE
+                        query_id=$($query_sql "insert into $search_result_table (id_login) values ('$server_login'); select last_insert_id();");
+
+# DEBUG INTERNO
+#echo "ID: "$query_id;
+#echo $search_result_login" - "$search_result_password" - "$search_result_table;
+
+                    }
+                    else
+                    {
+
+                        # GRAVA BANCO DE DADOS
+                        $query_sql "update $search_result_table set $search_result_check=('`cat /tmp/$server_log_val`') where id='$query_id';";
+
+# DEBUG INTERNO
+# MOSTRA CAMPO E VALOR
+#echo $search_result_check":";
+#cat /tmp/$server_log_val;
+#echo "--------------------------------------------------------------------------------";
+
+                    }
+                    fi;
+
+                    # PREPARA PROXIMA LINE
+                    search_start=$((search + 1));
+
+                done;
+
+                # GRAVA LOG DE ERROS NO BANCO DE DADOS
+                $query_sql "update $search_result_table set error=('`cat /tmp/$server_log_err`') where id='$query_id';";
+
+# DEBUG INTERNO
+#echo "--------------------------------------------------------------------------------";
+#echo "LOG ERROS:";
+#cat /tmp/$server_log_err;
+#echo "--------------------------------------------------------------------------------";
+
+#
+# ---------filtra e envia as informacoes de saida ao monitoramento--------------
+#
+
+            }
+            else
+            {
+
+#           +-----------------------------------------+
+# ----------| ERRO ACESSO INTERNET E/OU BASE DE DADOS |-------------------------
+#           +-----------------------------------------+
+
+                # VERIFICA LOG E MANTEM ULTIMA SEMANA
+                line_log=`tail -n 3 /tmp/$server_log_err_connect 2> /dev/null | tr -s " " "_" 2> /dev/null`;
+                > /tmp/$server_log_err_connect;
+                for line in `echo -e $line_log`;
+                do
+
+                    echo $line >> /tmp/$server_log_err_connect;
+
+                done;
+
+                # GRAVA DATA E SAIDA DE ERRO
+                echo `date`"-FALHA DE AUTENTICACAO [LOGIN OU SENHA INVALIDOS | LOGIN DESATIVADO]"  >> /tmp/$server_log_err_connect;
+
+#
+# ---------erro acesso internet e/ou base de dados------------------------------
+#
+
+            }
+            fi;
+
+#           +------------------------+
+# ----------| REMOVE ARQUIVOS DE LOG |------------------------------------------
+#           +------------------------+
+
+            # REMOVE LOG LOCAL
+            rm /tmp/$server_log > /dev/null 2> /dev/null;
+            rm /tmp/$server_log_val > /dev/null 2> /dev/null;
+            rm /tmp/$server_log_err > /dev/null 2> /dev/null;
+
+#
+# ---------remove arquivos de log-----------------------------------------------
+#
+
+        }
+        else
+        {
+
+#           +-----------------------------------------+
+# ----------| ERRO ACESSO INTERNET E/OU BASE DE DADOS |-------------------------
+#           +-----------------------------------------+
+
+            # VERIFICA LOG E MANTEM ULTIMA SEMANA
+            line_log=`tail -n 3 /tmp/$server_log_err_connect 2> /dev/null | tr -s " " "_" 2> /dev/null`;
+            > /tmp/$server_log_err_connect;
+            for line in `echo -e $line_log`;
+            do
+
+                echo $line >> /tmp/$server_log_err_connect;
+
+            done;
+
+            # GRAVA DATA E SAIDA DE ERRO
+            echo `date`"-"$server_commands  >> /tmp/$server_log_err_connect;
+
+#
+# ---------erro acesso internet e/ou base de dados------------------------------
+#
+
+        }
+        fi;
+
+# DEBUG INTERNO
+#echo "FIM";
+
+################################################################################
+
+###########################
+#                         #
+# FIM DO CONTROLE INTERNO #
+#                         #
+###########################
+
+    # CONTROLE DEFAULT 1 MINUTOS (60s)
+    sleep 60;
+
+done;
+
+################################################################################
+################################################# FIM DO CODIGO DA APLICACAO ###
+################################################################################
+
+	    # GRAVA MENSAGEM DE FIM DO DAEMON IPSERVER NO LOG
+    	echo "DAEMON IPSERVER FINALIZADO EM: `date`" >> $LOG;
+
+	    # FINALIZA DO DAEMON IPSERVER
+	    exit 0;
+
+    }
+
+    # TRATA SINAL DE FINALIZACAO DO DAEMON IPSERVER (KILL, CTRL + C)
+    trap control_c INT HUP TERM KILL
+
+# DEBUG INTERNO
+#echo "DAEMON IPSERVER EM: `date`" >> $LOG;
+
+# DEBUG INTERNO
+#echo "MEU PID: "$MYPID;
+#echo "MEU NOME: "$MYNAME;
+#echo "LOCK: "$LOCK;
+#echo "LOG: "$LOG;
+
+    # SE ARQUIVO LOCK NAO EXISTE (!), ENTAO INCIA SISTEMA
+    if [ ! -f $LOCK ]; then
+    {
+
+# DEBUG INTERNO
+#echo "PRIMEIRA INICIALIZACAO!";
+
+	    # CHAMA FUNCAO DE INICIALIZACAO DO DAEMON IPSERVER
+	    inicia_daemon_ipserver;
+
+    }
+    else
+    {
+
+	    # BUSCA PID NO LOCK
+	    ANTIGOPID=$(cat $LOCK);
+	    # VERIFICA SE PID DO LOCK ESTA RODANDO
+	    BUSCAPID=$(pgrep $MYNAME | grep -c $ANTIGOPID);
+
+# DEBUG INTERNO
+#echo "LOCK: "$ANTIGOPID;
+#echo "PGREP: "$BUSCAPID;
+
+	    # SE RETORNO NEGATIVO (!), INCIA SISTEMA
+	    if [ $BUSCAPID -eq 0 ]; then
+	    {
+
+		    # CHAMA A FUNCAO DE INCIALIZACAO DO DAEMON IPSERVER
+		    inicia_daemon_ipserver;
+
+# DEBUG INTERNO
+#echo "NAO ESTA RODANDO!";
+
+	    }
+	    else
+	    {
+
+# DEBUG INTERNO
+#echo "ESTA RODANDO! TCHAU :)";
+
+		    # FINALIZA O DAEMON IPSERVER
+		    exit 0;
+
+	    }
+        fi;
+
+    }
+    fi;
+
+#
+# ----------ipserver|daemon-----------------------------------------------------
+#
+
+################################################################################
+################################################## FIM DO CONTROLE DO DAEMOM ###
+################################################################################
