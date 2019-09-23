@@ -28,7 +28,7 @@
 ################################################################################
 ### VARIAVEIS DE ACESSO (AJUSTAR COMO NECESSARIO) ##############################
 ################################################################################
-server_arq_login=`hostname`;
+server_login=`hostname`;
 server_password='ENTRE COM A SENHA';
 ################################################################################
 
@@ -48,13 +48,13 @@ server_password='ENTRE COM A SENHA';
 
     # DEFININDO VARIAVEIS DO DAEMON IPSERVER
     arq_lock=/tmp/ipserver_daemon.lok;
-    # TROCAR PELO SYSarq_log (SALVAR INFORMACOES PERSONALIZADAS)
+    # TROCAR PELO SYSLOG (SALVAR INFORMACOES PERSONALIZADAS)
     arq_log=/tmp/ipserver_daemon.log;
 
     # PADRAO PARA MASK
     umask 022;
 
-    # EXECUTA CONTROLE DO TAMANHO DO ARQUIVO DE arq_log
+    # EXECUTA CONTROLE DO TAMANHO DO ARQUIVO DE LOG
     line_size=$(wc $arq_log 2> /dev/null | awk {'print $1'});
     if [ "$line_size" != "" ]; then
     {
@@ -76,7 +76,7 @@ server_password='ENTRE COM A SENHA';
 # DEBUG INTERNO
 #echo -e "SINAL DE FINALIZACAO!";
 
-	    # REMOVE ARQUIVOS DE CONTROLE (DEIXA arq_log)
+	    # REMOVE ARQUIVOS DE CONTROLE (DEIXA LOG)
 	    rm $arq_lock 2>/dev/null;
 
 	    # FINALIZA O DAEMON IPSERVER
@@ -88,7 +88,7 @@ server_password='ENTRE COM A SENHA';
     function inicia_daemon_ipserver ()
     {
 
-	    # SALVA INFORMACOES DO DAEMON IPSERVER EM arq_lock
+	    # SALVA INFORMACOES DO DAEMON IPSERVER EM LOCK
 	    echo $my_pid > $arq_lock;
 
 	    # GRAVA MENSAGEM DE EXECUCAO DO DAEMON IPSERVER
@@ -105,7 +105,7 @@ server_password='ENTRE COM A SENHA';
 # CONTROLE EVITANDO RODAR EM DUPLICIDADE, E COM ISSO POSSIVEIS TRAVAMENTOS
 # A APLICACAO COM SISTEMA DE VERIFICACAO DE CONEXAO DE INTERNET E SERVIDOR DE
 # BASE DE DADOS, COM ISSO EVITANTO PROBLEMAS DE CONSUMO DE RECURSOS DO SERVIDOR
-# COM arq_logS DO DAEMOM E APLICACAO, SEPARADOS PARA MELHOR ANALISE
+# COM LOGS DO DAEMOM E APLICACAO, SEPARADOS PARA MELHOR ANALISE
 
 ##############################
 #                            #
@@ -125,8 +125,8 @@ do
 # DEBUG INTERNO
 #echo "INICIO";
 
-        # TESTA CONEXAO COM A INTERNET E SERVIDOR DA arq_logICMIND (IPSERVER), DEFINE VARIAVEL DE ACESSO AO SERVIDOR
-        server_arq_log_err_connect="ipserver_err_connect.log";
+        # TESTA CONEXAO COM A INTERNET E SERVIDOR DA LOGICMIND (IPSERVER), DEFINE VARIAVEL DE ACESSO AO SERVIDOR
+        server_log_err_connect="ipserver_err_connect.log";
         server_commands="SEM ACESSO AO SERVIDOR [PING]";
         server_port="no";
 
@@ -208,19 +208,19 @@ do
         }
         fi;
 
-        # INICIA SISTEMA APOS VALIDACAO DO ACESSO A INTERNET E A BASE, SENAO GRAVA arq_log INTERNO DE ERRO
+        # INICIA SISTEMA APOS VALIDACAO DO ACESSO A INTERNET E A BASE, SENAO GRAVA LOG INTERNO DE ERRO
         if [ "$server_commands" != "SEM ACESSO A INTERNET" ] && [ "$server_commands" != "SEM ACESSO A BASE DE DADOS" ] && [ "$server_port" != "no" ]; then
         {
 
             # SEQUENCIA NA DEFINICAO DAS DEMAIS VARIAVEIS DE SISTEMA;
             server_db="ipserver";
             server_php="ipserver.php";
-            server_arq_log="ipserver.log";
-            server_arq_log_val="ipserver_val.log";
-            server_arq_log_err="ipserver_err.log";
+            server_log="ipserver.log";
+            server_log_val="ipserver_val.log";
+            server_log_err="ipserver_err.log";
 
 # DEBUG INTERNO
-#echo $server_arq_login"-"$server_password"-"$server_commands"-"$server_port;
+#echo $server_login"-"$server_password"-"$server_commands"-"$server_port;
 
 #
 # ---------variaveis iniciais---------------------------------------------------
@@ -235,7 +235,7 @@ do
             cd /tmp;
 
             # ACESSO AO SISTEMA WEB E BAIXA DOS COMANDOS
-            wget -q --post-data 'arq_logIN='$server_arq_login'&PASSWORD='$server_password'&OK=OK' $server_commands:6080/ipserver/$server_php;
+            wget -q --post-data 'LOGIN='$server_login'&PASSWORD='$server_password'&OK=OK' $server_commands:6080/ipserver/$server_php;
 
             # LEITURA DO ARQUIVO GERADO E FILTRO PARA LOCALIZAR SOMENTE OS COMANDOS VALIDOS
             commands=`cat $server_php | grep ";" | grep "%" | dos2unix | sed -e 's/<br \/>/;/g' | grep -v "^#" | sed '/^$/d' | tr -s ';' ';' | sed -e 's/;/ ; echo "----";/g'`;
@@ -250,7 +250,7 @@ do
             # REMOVE ARQUIVO GERADO
             rm $server_php*;
 
-            # VALIDA COMANDOS, RECEBIDOS SE arq_logIN LIBERADO, ENTAO REALIZA PROCEDIMENTOS
+            # VALIDA COMANDOS, RECEBIDOS SE LOGIN LIBERADO, ENTAO REALIZA PROCEDIMENTOS
             if [ "$commands" != "" ]; then
             {
 
@@ -258,14 +258,14 @@ do
 # ----------| EXECUCAO DOS COMANDOS E INSTRUCOES |------------------------------
 #           +------------------------------------+
 
-                # ZERA E INICIA ARQUIVO DE arq_log DE EROOS
-                > /tmp/$server_arq_log_err;
-                date > /tmp/$server_arq_log_err;
+                # ZERA E INICIA ARQUIVO DE LOG DE EROOS
+                > /tmp/$server_log_err;
+                date > /tmp/$server_log_err;
 
-                # EXECUTA OS COMANDOS SALVA EM arq_log LOCAL
-                echo $commands | bash > /tmp/$server_arq_log 2>> /tmp/$server_arq_log_err;
+                # EXECUTA OS COMANDOS SALVA EM LOG LOCAL
+                echo $commands | bash > /tmp/$server_log 2>> /tmp/$server_log_err;
 
-# SANDER REMOVER DEPOIS | VALIDAR XARGS, SALVAR arq_log DE COMANDOS PARA VALIDACAO;
+# SANDER REMOVER DEPOIS | VALIDAR XARGS, SALVAR LOG DE COMANDOS PARA VALIDACAO;
 
 #
 # ---------execucao dos comandos e instrucoes-----------------------------------
@@ -277,12 +277,12 @@ do
 
                 # REALIZA FILTRO PARA IDENTIFICAR SAIDAS
                 search_start="1";
-                for search in `cat /tmp/$server_arq_log | nl -ba | grep "\-\-\-\-" | tr -d " " | tr -s "\t" " " | cut -d " " -f 1`
+                for search in `cat /tmp/$server_log | nl -ba | grep "\-\-\-\-" | tr -d " " | tr -s "\t" " " | cut -d " " -f 1`
                 do
 
                     # FAZ CONTROLE E BUSCA POR LINNHA
                     search_stop=$(($search - $search_start));
-                    search_result=`tail -n +$search_start /tmp/$server_arq_log | head -n $search_stop | tee /tmp/$server_arq_log_val`;
+                    search_result=`tail -n +$search_start /tmp/$server_log | head -n $search_stop | tee /tmp/$server_log_val`;
 
                     # FILTRA PELO TIPO DE CAMPO OU VALOR
                     if [ "`echo $search_result | grep "\%\%\%\%"`" != "" ]; then
@@ -299,29 +299,29 @@ do
                     {
 
                         # CAPTURA DADOS DE ACESSO A BASE DE DADOS, PARA GRAVACAO
-                        search_result_arq_login=`echo $search_result  | cut -d "%" -f 4`;
+                        search_result_login=`echo $search_result  | cut -d "%" -f 4`;
                         search_result_password=`echo $search_result  | cut -d "%" -f 5`;
                         search_result_table=`echo $search_result  | cut -d "%" -f 6`;
                         # VARIAVEL PARA OS COMANDOS SQL
-                        query_sql="mysql -B -L -N -q -D $server_db -u $search_result_arq_login -p$search_result_password -h $server_commands -P $server_port -e ";
-                        # INSERE arq_logIN NA BASE E CAPTURA ID DA line_size
-                        query_id=$($query_sql "insert into $search_result_table (id_arq_login) values ('$server_arq_login'); select last_insert_id();");
+                        query_sql="mysql -B -L -N -q -D $server_db -u $search_result_login -p$search_result_password -h $server_commands -P $server_port -e ";
+                        # INSERE LOGIN NA BASE E CAPTURA ID DA line_size
+                        query_id=$($query_sql "insert into $search_result_table (id_login) values ('$server_login'); select last_insert_id();");
 
 # DEBUG INTERNO
 #echo "ID: "$query_id;
-#echo $search_result_arq_login" - "$search_result_password" - "$search_result_table;
+#echo $search_result_login" - "$search_result_password" - "$search_result_table;
 
                     }
                     else
                     {
 
                         # GRAVA BANCO DE DADOS
-                        $query_sql "update $search_result_table set $search_result_check=('`cat /tmp/$server_arq_log_val`') where id='$query_id';";
+                        $query_sql "update $search_result_table set $search_result_check=('`cat /tmp/$server_log_val`') where id='$query_id';";
 
 # DEBUG INTERNO
 # MOSTRA CAMPO E VALOR
 #echo $search_result_check":";
-#cat /tmp/$server_arq_log_val;
+#cat /tmp/$server_log_val;
 #echo "--------------------------------------------------------------------------------";
 
                     }
@@ -332,13 +332,13 @@ do
 
                 done;
 
-                # GRAVA arq_log DE ERROS NO BANCO DE DADOS
-                $query_sql "update $search_result_table set error=('`cat /tmp/$server_arq_log_err`') where id='$query_id';";
+                # GRAVA LOG DE ERROS NO BANCO DE DADOS
+                $query_sql "update $search_result_table set error=('`cat /tmp/$server_log_err`') where id='$query_id';";
 
 # DEBUG INTERNO
 #echo "--------------------------------------------------------------------------------";
-#echo "arq_log ERROS:";
-#cat /tmp/$server_arq_log_err;
+#echo "LOG ERROS:";
+#cat /tmp/$server_log_err;
 #echo "--------------------------------------------------------------------------------";
 
 #
@@ -353,18 +353,18 @@ do
 # ----------| ERRO ACESSO INTERNET E/OU BASE DE DADOS |-------------------------
 #           +-----------------------------------------+
 
-                # VERIFICA arq_log E MANTEM ULTIMA SEMANA
-                line_size_arq_log=`tail -n 3 /tmp/$server_arq_log_err_connect 2> /dev/null | tr -s " " "_" 2> /dev/null`;
-                > /tmp/$server_arq_log_err_connect;
-                for line_size in `echo -e $line_size_arq_log`;
+                # VERIFICA LOG E MANTEM ULTIMA SEMANA
+                line_size_log=`tail -n 3 /tmp/$server_log_err_connect 2> /dev/null | tr -s " " "_" 2> /dev/null`;
+                > /tmp/$server_log_err_connect;
+                for line_size in `echo -e $line_size_log`;
                 do
 
-                    echo $line_size >> /tmp/$server_arq_log_err_connect;
+                    echo $line_size >> /tmp/$server_log_err_connect;
 
                 done;
 
                 # GRAVA DATA E SAIDA DE ERRO
-                echo `date`"-FALHA DE AUTENTICACAO [arq_logIN OU SENHA INVALIDOS | arq_logIN DESATIVADO]"  >> /tmp/$server_arq_log_err_connect;
+                echo `date`"-FALHA DE AUTENTICACAO [LOGIN OU SENHA INVALIDOS | LOGIN DESATIVADO]"  >> /tmp/$server_log_err_connect;
 
 #
 # ---------erro acesso internet e/ou base de dados------------------------------
@@ -374,16 +374,16 @@ do
             fi;
 
 #           +------------------------+
-# ----------| REMOVE ARQUIVOS DE arq_log |------------------------------------------
+# ----------| REMOVE ARQUIVOS DE LOG |------------------------------------------
 #           +------------------------+
 
-            # REMOVE arq_log LOCAL
-            rm /tmp/$server_arq_log > /dev/null 2> /dev/null;
-            rm /tmp/$server_arq_log_val > /dev/null 2> /dev/null;
-            rm /tmp/$server_arq_log_err > /dev/null 2> /dev/null;
+            # REMOVE LOG LOCAL
+            rm /tmp/$server_log > /dev/null 2> /dev/null;
+            rm /tmp/$server_log_val > /dev/null 2> /dev/null;
+            rm /tmp/$server_log_err > /dev/null 2> /dev/null;
 
 #
-# ---------remove arquivos de arq_log-----------------------------------------------
+# ---------remove arquivos de log-----------------------------------------------
 #
 
         }
@@ -394,18 +394,18 @@ do
 # ----------| ERRO ACESSO INTERNET E/OU BASE DE DADOS |-------------------------
 #           +-----------------------------------------+
 
-            # VERIFICA arq_log E MANTEM ULTIMA SEMANA
-            line_size_arq_log=`tail -n 3 /tmp/$server_arq_log_err_connect 2> /dev/null | tr -s " " "_" 2> /dev/null`;
-            > /tmp/$server_arq_log_err_connect;
-            for line_size in `echo -e $line_size_arq_log`;
+            # VERIFICA LOG E MANTEM ULTIMA SEMANA
+            line_size_log=`tail -n 3 /tmp/$server_log_err_connect 2> /dev/null | tr -s " " "_" 2> /dev/null`;
+            > /tmp/$server_log_err_connect;
+            for line_size in `echo -e $line_size_log`;
             do
 
-                echo $line_size >> /tmp/$server_arq_log_err_connect;
+                echo $line_size >> /tmp/$server_log_err_connect;
 
             done;
 
             # GRAVA DATA E SAIDA DE ERRO
-            echo `date`"-"$server_commands  >> /tmp/$server_arq_log_err_connect;
+            echo `date`"-"$server_commands  >> /tmp/$server_log_err_connect;
 
 #
 # ---------erro acesso internet e/ou base de dados------------------------------
@@ -434,7 +434,7 @@ done;
 ################################################# FIM DO CODIGO DA APLICACAO ###
 ################################################################################
 
-	    # GRAVA MENSAGEM DE FIM DO DAEMON IPSERVER NO arq_log
+	    # GRAVA MENSAGEM DE FIM DO DAEMON IPSERVER NO LOG
     	echo "DAEMON IPSERVER FINALIZADO EM: `date`" >> $arq_log;
 
 	    # FINALIZA DO DAEMON IPSERVER
@@ -451,10 +451,10 @@ done;
 # DEBUG INTERNO
 #echo "MEU PID: "$my_pid;
 #echo "MEU NOME: "$my_name;
-#echo "arq_lock: "$arq_lock;
-#echo "arq_log: "$arq_log;
+#echo "LOCK: "$arq_lock;
+#echo "LOG: "$arq_log;
 
-    # SE ARQUIVO arq_lock NAO EXISTE (!), ENTAO INCIA SISTEMA
+    # SE ARQUIVO LOCK NAO EXISTE (!), ENTAO INCIA SISTEMA
     if [ ! -f $arq_lock ]; then
     {
 
@@ -468,13 +468,13 @@ done;
     else
     {
 
-	    # BUSCA PID NO arq_lock
+	    # BUSCA PID NO LOCK
 	    ANTIGOPID=$(cat $arq_lock);
-	    # VERIFICA SE PID DO arq_lock ESTA RODANDO
+	    # VERIFICA SE PID DO LOCK ESTA RODANDO
 	    BUSCAPID=$(pgrep $my_name | grep -c $ANTIGOPID);
 
 # DEBUG INTERNO
-#echo "arq_lock: "$ANTIGOPID;
+#echo "LOCK: "$ANTIGOPID;
 #echo "PGREP: "$BUSCAPID;
 
 	    # SE RETORNO NEGATIVO (!), INCIA SISTEMA
