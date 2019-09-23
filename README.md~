@@ -3,7 +3,7 @@ Monitoramento ativo e execução de comandos, para servidores Unix-like.
 
 A ferramenta IPSERVER.mnd, vem como um complemento a outras soluções de monitoramento, como NAGIOS, ZABBIX, CACTI, MONIT, etc. Agregando mais recursos ao NetAdmin/SysAdmin;
 
-O sistema funciona invocando comandos e informações diretamente ao servidor de gerenciamento, que controla cliente ativo ou não, senha de acesso, trabalhando de forma dinâmica. Assim como a sequencia dos comandos sendo realizada pelo IPSERVER (WEB).
+O sistema funciona de forma segura, invocando comandos e informações diretamente ao servidor de gerenciamento, que controla cliente ativo ou não, senha de acesso, trabalhando de forma dinâmica. Assim como a sequencia dos comandos sendo realizada pelo IPSERVER (WEB).
 
 No cliente script "ipserver.mnd", deve estar salvo em "/sbin";
 - Necessário NMAP, dos2unix, PING, resolv.conf e MySQL Cli;
