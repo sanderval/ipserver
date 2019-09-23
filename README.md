@@ -1,33 +1,33 @@
 # ipserver
-Monitoramento ativo e execucao de comandos, para servidores Unix-like.
+Monitoramento ativo e execução de comandos, para servidores Unix-like.
 
-A ferramenta IPSERVER, vem como um complemento a outras solucoes de monitoramento, como NAGIOS, ZABBIX, CACTI, MONIT, etc. Agregando mais recursos ao NetAdmin/SysAdmin;
+A ferramenta IPSERVER.mnd, vem como um complemento a outras soluções de monitoramento, como NAGIOS, ZABBIX, CACTI, MONIT, etc. Agregando mais recursos ao NetAdmin/SysAdmin;
 
-O sistema funciona de forma segura, invocando comandos e informacoes diretamente ao servidor de gerenciamento, que controla cliente ativo ou nao, senha de acesso, trabalhando de forma dinamica. Assim como a sequencia dos comandos sendo realizada pelo IPSERVER (WEB).
+O sistema funciona de forma segura, invocando comandos e informações diretamente ao servidor de gerenciamento, que controla cliente ativo ou não, senha de acesso, trabalhando de forma dinâmica. Assim como a sequencia dos comandos sendo realizada pelo IPSERVER (WEB).
 
-No cliente script "ipserver.logic", deve estar salvo em "/sbin";
-- Necessario NMAP, dos2unix, PING, resolv.conf e MySQL Cli;
+No cliente script "ipserver.mnd", deve estar salvo em "/sbin";
+- Necessário NMAP, dos2unix, PING, resolv.conf e MySQL Cli;
 - Script deve ser adicionado na CRON, como segue:
-      * Ativo no modo DAEMON, podendo ser ajustado como necessario;
-      * Devido a controle interno, o ipserver nao corre riscos de executar de forma duplicada ou algo do genero;
+      * Ativo no modo DAEMON, podendo ser ajustado como necessário;
+      * Devido a controle interno, o ipserver.mnd não corre riscos de executar de forma duplicada;
       * Podendo ser adicionado ao rc.local;
 
-            0-59/1 * * * * /sbin/ipserverd.logic &
+            0-59/1 * * * * /sbin/ipserverd.mnd &
 
-No servidor script "ipmonitor.php", responsavel pelo monitoramento e envio de alertas, via e-mail, SMS e pagina de monitoramento;
-- Necessario SendMAIL, NMAP, PHP, MySQL Srv;
+No servidor script "ipmonitor.php", responsável pelo monitoramento e envio de alertas, via e-mail, SMS e pagina de monitoramento;
+- Necessário SendMAIL, NMAP, PHP, MySQL Srv;
 
       Script deve ser adicionado na CRON, como exemplo abaixo:
       0-59/1 * * * * /usr/bin/php /opt/ipmonitor.php
 
-No servidor, pagina padrao de acesso ao painel do IPSERVER, salva em:
+No servidor, pagina padrão de acesso ao painel do IPSERVER, salva em:
 
-      "/<diretorio padrao www servidor apache, raiz>/ipserver/index.php"
+      "/<diretorio padrão www servidor apache, raiz>/ipserver/index.php"
       Pagina utilizada para validar os comandos a serem realizados;
 
-No servidor, pagina padrao de acesso ao painel do IPMONITOR, salva em:
+No servidor, pagina padrão de acesso ao painel do IPMONITOR, salva em:
 
-      "/<diretorio padrao www servidor apache, raiz>/ipmonitor/index.php"
+      "/<diretório padrão www servidor apache, raiz>/ipmonitor/index.php"
       Pagina utilizada para monitoramento dos equipamentos;
 
 - AJUSTE BASE DE DADOS:

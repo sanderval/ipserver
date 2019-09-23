@@ -7,21 +7,21 @@
 #  | CRIADO EM: 05/07/2017           |
 #  | REVISADO EM: 14/09/2017         |
 #  | POR: Sanderval Maia dos Santos  |
-#  | E-MAIL: sander@logicmind.com.br |
+#  | E-MAIL: sander@sanderval.com.br |
 #  |                                 |
-#  | Powered by LogicMInd            |
-#  | www.logicmind.com.br            |
+#  | Powered by MindIsTech           |
+#  | www.sanderval.com.br            |
 #  +---------------------------------+
 
 #      +------+
 #  +---| INFO |---------------------------------------------------------------+
 #  |   +------+                                                               |
 #  |                                                                          |
-#  | INFOS:        sander              teste                                  |
+#  | INFOS:                                                                   |
 #  | ------                                                                   |
 #  |                                                                          |
 #  | Sistema de monitoramento ativo, enviando informacoes e realizando        |
-#  | comandos de acordo com as necessidades, de forma automatica.             |
+#  | comandos de acordo com as necessidades.                                  |
 #  |                                                                          |
 #  | PARA DEBUG DO BASH, USAR O PARAMETRO DEFAULT "-x"                        |
 #  +--------------------------------------------------------------------------+
