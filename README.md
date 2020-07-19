@@ -1,4 +1,4 @@
-# ipserver.mnd
+# mnd | ipserver
 Monitoramento ativo e execução de comandos, para servidores Unix-like.
 
 A ferramenta IPSERVER.mnd, vem como um complemento a outras soluções de monitoramento, como NAGIOS, ZABBIX, CACTI, MONIT, etc. Agregando mais recursos ao NetAdmin/SysAdmin;
